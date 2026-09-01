@@ -25,10 +25,18 @@
   html, body {
     margin: 0;
     height: 100%;
-    background: var(--ink);
     color: var(--cream);
     font-family: 'Inter', system-ui, sans-serif;
     overflow: hidden;
+  }
+
+  /* Only html gets the dark fill -- it paints at the very bottom of the
+     stacking order. If this were on body instead, it would paint above
+     MindAR's injected camera <video> (which sits at z-index: -2) and
+     hide the camera feed behind a solid color, even though a-scene and
+     the status pill above it would still render correctly. */
+  html {
+    background: var(--ink);
   }
 
   a-scene {
@@ -254,6 +262,7 @@
     startBtn.addEventListener('click', async () => {
       if (startBtn.disabled) return;
       gate.classList.add('hidden');
+      document.body.style.background = 'transparent'; // belt-and-braces: guarantee nothing opaque sits over the camera feed
       statusEl.classList.add('visible');
       try {
         await sceneEl.systems['mindar-image-system'].start();
