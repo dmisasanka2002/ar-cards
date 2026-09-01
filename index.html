@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>A message for you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+  :root {
+    --ink: #14110f;
+    --ink-raised: #1d1914;
+    --gold: #e8a33d;
+    --gold-dim: #a5762c;
+    --cream: #f1e9dd;
+    --muted: #948c7d;
+    --found: #7fae82;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  a-scene {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* --- Pre-start gate --- */
+  #gate {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(60% 50% at 50% 30%, rgba(232, 163, 61, 0.10), transparent 70%),
+      var(--ink);
+  }
+
+  #gate.hidden { display: none; }
+
+  .gate-card {
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .flame {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 22px;
+    display: block;
+  }
+
+  .gate-eyebrow {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+  }
+
+  .guest-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(28px, 8vw, 40px);
+    line-height: 1.15;
+    margin: 0 0 18px;
+    color: var(--cream);
+  }
+
+  .gate-copy {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.55;
+    margin: 0 0 28px;
+  }
+
+  .start-btn {
+    appearance: none;
+    border: none;
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: 10px;
+    background: var(--gold);
+    color: #241a08;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+
+  .start-btn:active { background: var(--gold-dim); }
+
+  .start-btn:disabled {
+    background: var(--ink-raised);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .gate-foot {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* --- Status pill, shown once AR session is running --- */
+  #status {
+    position: fixed;
+    top: max(18px, env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 100px;
+    background: rgba(20, 17, 15, 0.72);
+    backdrop-filter: blur(6px);
+    font-size: 13px;
+    color: var(--cream);
+    border: 1px solid rgba(241, 233, 221, 0.12);
+  }
+
+  #status.visible { display: flex; }
+
+  #status .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 150ms ease;
+  }
+
+  #status.found .dot { background: var(--found); }
+
+  /* --- Fallback tap-to-unmute, shown only if autoplay-with-sound was blocked --- */
+  #unmute {
+    position: fixed;
+    bottom: max(28px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    background: rgba(20, 17, 15, 0.82);
+    border: 1px solid rgba(241, 233, 221, 0.16);
+    color: var(--cream);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  #unmute.visible { display: block; }
+</style>
+</head>
+<body>
+
+  <div id="gate">
+    <div class="gate-card">
+      <svg class="flame" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C9 6 7 8.5 7 12.5C7 16.5 9.5 19 12 19C14.5 19 17 16.5 17 12.5C17 11 16.3 9.6 15.5 8.5C15.4 10 14.6 11 13.5 11C14 9 13.5 6.5 12 2Z"
+          fill="#E8A33D" opacity="0.9"/>
+        <path d="M12 8C10.8 10 10 11.5 10 13.2C10 15 11 16.3 12 16.3C13 16.3 14 15 14 13.2C14 12.4 13.7 11.7 13.3 11.1C13.2 12 12.8 12.5 12.3 12.5C12.6 11.3 12.4 9.8 12 8Z"
+          fill="#F1E9DD"/>
+      </svg>
+      <p class="gate-eyebrow" id="gateEyebrow">A message for</p>
+      <h1 class="guest-name" id="guestName">you</h1>
+      <p class="gate-copy" id="gateCopy">
+        Point your camera at the card you were given — your message will play right on top of it.
+      </p>
+      <button class="start-btn" id="startBtn">Start the camera</button>
+      <p class="gate-foot">No app needed — this opens right in your browser.</p>
+    </div>
+  </div>
+
+  <div id="status"><span class="dot"></span><span id="statusText">Looking for the card…</span></div>
+  <div id="unmute">Tap to turn the sound on</div>
+
+  <a-scene
+    id="scene"
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no; uiLoading: no; uiError: no;"
+    color-space="sRGB"
+    embedded
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-assets>
+      <video id="capsuleVideo" preload="auto" playsinline webkit-playsinline loop="false"></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
+
+    <a-entity id="target" mindar-image-target="targetIndex: 0">
+      <!--
+        width/height set the video plane's aspect ratio in AR-space units.
+        Measure your printed card (width / height) and match that ratio here
+        so the video doesn't look stretched. Default below assumes a roughly
+        1.8:1 landscape card — see README "Set the video's aspect ratio".
+      -->
+      <a-video id="videoPlane" src="#capsuleVideo" width="1.8" height="1" position="0 0 0"></a-video>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const guestName = params.get('name');
+    const videoFile = params.get('v');
+
+    const gate = document.getElementById('gate');
+    const guestNameEl = document.getElementById('guestName');
+    const gateEyebrow = document.getElementById('gateEyebrow');
+    const gateCopy = document.getElementById('gateCopy');
+    const startBtn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const unmuteEl = document.getElementById('unmute');
+    const sceneEl = document.getElementById('scene');
+    const targetEl = document.getElementById('target');
+    const video = document.getElementById('capsuleVideo');
+
+    if (guestName) {
+      guestNameEl.textContent = guestName;
+    } else {
+      guestNameEl.textContent = 'friend';
+    }
+
+    if (!videoFile) {
+      gateEyebrow.textContent = 'Hmm';
+      gateCopy.textContent = "This card doesn't have a message linked to it yet — check the link on the QR code.";
+      startBtn.disabled = true;
+      startBtn.textContent = 'No message found';
+    } else {
+      video.src = './videos/' + videoFile;
+    }
+
+    startBtn.addEventListener('click', async () => {
+      if (startBtn.disabled) return;
+      gate.classList.add('hidden');
+      statusEl.classList.add('visible');
+      try {
+        await sceneEl.systems['mindar-image-system'].start();
+      } catch (err) {
+        statusText.textContent = 'Camera unavailable — check permissions and reload.';
+      }
+    });
+
+    targetEl.addEventListener('targetFound', () => {
+      statusEl.classList.add('found');
+      statusText.textContent = 'Found it';
+      video.currentTime = 0;
+      video.muted = false;
+      const playPromise = video.play();
+      if (playPromise) {
+        playPromise.catch(() => {
+          // Autoplay with sound was blocked (common on iOS) — fall back to
+          // muted playback and let the guest opt in to sound with one tap.
+          video.muted = true;
+          video.play();
+          unmuteEl.classList.add('visible');
+        });
+      }
+    });
+
+    targetEl.addEventListener('targetLost', () => {
+      statusEl.classList.remove('found');
+      statusText.textContent = 'Looking for the card…';
+      video.pause();
+    });
+
+    unmuteEl.addEventListener('click', () => {
+      video.muted = false;
+      unmuteEl.classList.remove('visible');
+    });
+  </script>
+</body>
+</html>
